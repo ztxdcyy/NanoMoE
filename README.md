@@ -88,3 +88,11 @@ python bench_ep_moe_multi.py --world-size 2 --backend nccl --mode both --batch-s
       2.3         24922783          7  3560397.6  3556539.0   3552508   3583932      10781.2  ampere_sgemm_128x128_tn                                                                             
       1.5         17099855          7  2442836.4  2443279.0   2440208   2443984       1369.7  void gemmSN_TN_kernel<float, (int)128, (int)16, (int)2, (int)4, (int)8, (int)9, (bool)0, cublasGemv…
 ```
+
+在单卡上，去掉通信+对齐profiler config的情况下，稍微能看到一些收益：
+```
+(base) root@autodl-container-f99d409ef7-af0a6bc9:~/workspace/NanoMoE# python bench/bench_ep_moe.py
+一致性检查: PASS, max_err=3.0518e-05
+loop        : 118.210 ms/iter (warmup 5, iters 20)
+batched_gemm: 100.830 ms/iter (warmup 5, iters 20)
+```

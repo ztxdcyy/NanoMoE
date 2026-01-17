@@ -1,3 +1,4 @@
 notes/
 *.qdrep
 *.nsys-rep
+*.sqlite

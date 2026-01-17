@@ -18,12 +18,12 @@ def _sync():
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Benchmark EPMoE loop vs batched_gemm")
-    parser.add_argument("--batch-size", type=int, default=None,
+    parser.add_argument("--batch-size", type=int, default=128,
                         help="默认使用 num_experts * tokens_per_expert")
     parser.add_argument("--tokens-per-expert", type=int, default=64)
-    parser.add_argument("--hidden-dim", type=int, default=64)
-    parser.add_argument("--num-experts", type=int, default=1024)
-    parser.add_argument("--experts-per-token", type=int, default=1)
+    parser.add_argument("--hidden-dim", type=int, default=2048)
+    parser.add_argument("--num-experts", type=int, default=256)
+    parser.add_argument("--experts-per-token", type=int, default=8)
     parser.add_argument("--max-num-tokens", type=int, default=None,
                         help="默认与 batch-size 相同")
     parser.add_argument("--warmup", type=int, default=5)
