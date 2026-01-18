@@ -1,4 +1,6 @@
 notes/
+__pycache__/
+*.py[cod]
 *.qdrep
 *.nsys-rep
 *.sqlite

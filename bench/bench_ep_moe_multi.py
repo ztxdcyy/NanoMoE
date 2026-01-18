@@ -38,13 +38,18 @@ def _time_forward(model: EPMoE, x: torch.Tensor, warmup: int, iters: int) -> flo
             model(x)
         _sync_device()
         dist.barrier()
+        if x.is_cuda:
+            torch.cuda.profiler.start()
         start = time.perf_counter()
         for _ in range(iters):
             model(x)
         _sync_device()
+        end = time.perf_counter()
+        if x.is_cuda:
+            torch.cuda.profiler.stop()
         dist.barrier()
         # 对比e2e执行时间
-    return (time.perf_counter() - start) / iters
+    return (end - start) / iters
 
 
 def _bench_mode(mode: str, args, rank: int, world_size: int, device: torch.device, base_state=None):
@@ -61,11 +66,27 @@ def _bench_mode(mode: str, args, rank: int, world_size: int, device: torch.devic
     _broadcast_state_dict(model, src=0)
 
     x = torch.randn(args.batch_size, args.hidden_dim, device=device, dtype=torch.float32)
-    elapsed = _time_forward(model, x, args.warmup, args.iters)
+    elapsed = _time_forward(model, x, args.warmup, args.iters) if args.cuda_profiler else _time_forward_no_profiler(model, x, args.warmup, args.iters)
 
     t = torch.tensor([elapsed], device=device)
     dist.reduce(t, dst=0, op=dist.ReduceOp.MAX)
     return t.item()
+
+
+def _time_forward_no_profiler(model: EPMoE, x: torch.Tensor, warmup: int, iters: int) -> float:
+    model.eval()
+    with torch.no_grad():
+        for _ in range(warmup):
+            model(x)
+        _sync_device()
+        dist.barrier()
+        start = time.perf_counter()
+        for _ in range(iters):
+            model(x)
+        _sync_device()
+        end = time.perf_counter()
+        dist.barrier()
+    return (end - start) / iters
 
 
 def _worker(rank: int, args):
@@ -124,6 +145,11 @@ def parse_args():
                         help="选择单个模式或同时对比")
     parser.add_argument("--master-port", type=int, default=29523)
     parser.add_argument("--seed", type=int, default=1234)
+    parser.add_argument(
+        "--cuda-profiler",
+        action="store_true",
+        help="Wrap measured iters with torch.cuda.profiler.{start,stop} for nsys capture-range=cudaProfilerApi.",
+    )
     return parser.parse_args()
 
 
